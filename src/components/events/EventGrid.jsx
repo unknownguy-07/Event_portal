@@ -4,6 +4,7 @@ import { EventCard } from './EventCard';
 import { SkeletonEventGrid } from './SkeletonEventGrid';
 import { useEvents } from '@/hooks/useEvents';
 import { SortDropdown } from '@/components/controls/SortDropdown';
+import { FilterControls } from '@/components/controls/FilterControls';
 
 /**
  * EventGrid Component
@@ -17,6 +18,8 @@ export function EventGrid() {
     setSortBy,
     selectedCategory,
     searchQuery,
+    registrationTypeFilter,
+    organizerFilter,
     isLoadingEvents,
   } = useEvents();
 
@@ -35,7 +38,15 @@ export function EventGrid() {
       return {
         icon: <SearchX className="w-8 h-8 text-indigo-400" />,
         title: 'No Matching Events Found',
-        message: `We couldn't find any events matching "${searchQuery}". Try checking your spelling or clearing filters.`,
+        message: `We couldn't find any events matching "${searchQuery}". Try checking your spelling or adjusting filters.`,
+      };
+    }
+
+    if (registrationTypeFilter !== 'all' || organizerFilter !== 'all') {
+      return {
+        icon: <CalendarX className="w-8 h-8 text-slate-400" />,
+        title: 'No Events Match Selected Filters',
+        message: 'No events match the selected Fee or Organizer filters. Try changing or clearing your filter criteria.',
       };
     }
 
@@ -54,7 +65,7 @@ export function EventGrid() {
       className="max-w-7xl mx-auto px-4 md:px-8 py-8 animate-fade-in"
     >
       {/* Event Listing Controls Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-900">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-900">
         <div>
           <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">
             Explore Campus Events
@@ -64,8 +75,9 @@ export function EventGrid() {
           </p>
         </div>
 
-        {/* Filter Controls Zone */}
-        <div className="flex items-center gap-3 self-start md:self-auto">
+        {/* Filter & Sort Controls Zone */}
+        <div className="flex flex-wrap items-center gap-3">
+          <FilterControls />
           <SortDropdown value={sortBy} onChange={setSortBy} />
         </div>
       </div>

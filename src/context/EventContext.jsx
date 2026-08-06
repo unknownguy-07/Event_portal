@@ -6,6 +6,7 @@ import {
   getCollegeInfo,
   toggleBookmarkInDb,
 } from '@/services/eventService';
+import { mockOrganizers } from '@/services/mockData';
 import { useAuth } from '@/hooks/useAuth';
 
 export const EventContext = createContext(null);
@@ -17,11 +18,15 @@ export function EventProvider({ children }) {
   const [categories, setCategories] = useState([]);
   const [featuredEvents, setFeaturedEvents] = useState([]);
   const [collegeInfo, setCollegeInfo] = useState({});
+  const [organizers] = useState(mockOrganizers);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('latest');
+  const [sortBy, setSortBy] = useState('popular'); // Default sort: 'popular' | 'latest'
+  const [registrationTypeFilter, setRegistrationTypeFilter] = useState('all'); // 'all' | 'free' | 'paid'
+  const [organizerFilter, setOrganizerFilter] = useState('all'); // 'all' | organizer name
+
   const [bookmarkedIds, setBookmarkedIds] = useState(new Set(['evt-101', 'evt-103']));
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
@@ -68,23 +73,24 @@ export function EventProvider({ children }) {
       return updated;
     });
 
-    // Delegate database persistence to eventService
     if (currentUser?.uid) {
       toggleBookmarkInDb(currentUser.uid, eventId, isCurrentlyBookmarked);
     }
   };
 
-  // Computed displayed events based on search, category, and sorting
+  // Computed displayed events based on search, category, registrationType, organizer, and sorting
   const displayedEvents = useMemo(() => {
     let result = [...events];
 
-    // Filter by search query
+    // Filter by search query (name, category, organizer, or venue)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
         (evt) =>
-          evt.name.toLowerCase().includes(q) ||
-          evt.category.toLowerCase().includes(q)
+          evt.name?.toLowerCase().includes(q) ||
+          evt.category?.toLowerCase().includes(q) ||
+          evt.organizer?.toLowerCase().includes(q) ||
+          evt.venue?.toLowerCase().includes(q)
       );
     }
 
@@ -95,17 +101,39 @@ export function EventProvider({ children }) {
       result = result.filter((evt) => evt.categoryId === selectedCategory);
     }
 
+    // Filter by Registration Type (Free / Paid)
+    if (registrationTypeFilter === 'free') {
+      result = result.filter(
+        (evt) => evt.registrationType === 'Free' || evt.rawFee === 0
+      );
+    } else if (registrationTypeFilter === 'paid') {
+      result = result.filter(
+        (evt) => evt.registrationType === 'Paid' || evt.rawFee > 0
+      );
+    }
+
+    // Filter by Organizing Body
+    if (organizerFilter !== 'all') {
+      result = result.filter((evt) => evt.organizer === organizerFilter);
+    }
+
     // Sort order
-    if (sortBy === 'fee_asc') {
-      result.sort((a, b) => a.rawFee - b.rawFee);
-    } else if (sortBy === 'fee_desc') {
-      result.sort((a, b) => b.rawFee - a.rawFee);
-    } else {
+    if (sortBy === 'popular') {
+      result.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+    } else if (sortBy === 'latest') {
       result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
     return result;
-  }, [events, searchQuery, selectedCategory, sortBy, bookmarkedIds]);
+  }, [
+    events,
+    searchQuery,
+    selectedCategory,
+    registrationTypeFilter,
+    organizerFilter,
+    sortBy,
+    bookmarkedIds,
+  ]);
 
   const value = {
     events,
@@ -113,6 +141,7 @@ export function EventProvider({ children }) {
     categories,
     featuredEvents,
     collegeInfo,
+    organizers,
     isLoadingEvents,
     selectedCategory,
     setSelectedCategory,
@@ -120,6 +149,10 @@ export function EventProvider({ children }) {
     setSearchQuery,
     sortBy,
     setSortBy,
+    registrationTypeFilter,
+    setRegistrationTypeFilter,
+    organizerFilter,
+    setOrganizerFilter,
     bookmarkedIds,
     toggleBookmark,
     showAuthModal,
