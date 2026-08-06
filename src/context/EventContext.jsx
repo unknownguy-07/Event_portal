@@ -12,8 +12,10 @@ export function EventProvider({ children }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('latest'); // 'latest' | 'fee_asc' | 'fee_desc'
-  const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
+  // Pre-seed sample bookmarked IDs for interactive preview (evt-101, evt-103)
+  const [bookmarkedIds, setBookmarkedIds] = useState(new Set(['evt-101', 'evt-103']));
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null); // 'interested' | { type: 'bookmark', eventId }
 
   const toggleBookmark = (eventId) => {
     setBookmarkedIds((prev) => {
@@ -77,6 +79,8 @@ export function EventProvider({ children }) {
     toggleBookmark,
     showAuthModal,
     setShowAuthModal,
+    pendingAction,
+    setPendingAction,
   };
 
   return (
