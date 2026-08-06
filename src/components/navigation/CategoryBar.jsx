@@ -1,10 +1,13 @@
 import React from 'react';
+import { Bookmark } from 'lucide-react';
 import { CategoryPill } from './CategoryPill';
 import { useEvents } from '@/hooks/useEvents';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
- * Horizontal scrollable category container + "Interested Events" filter button.
+ * CategoryBar Component
+ * Positioned directly below the navigation bar.
+ * Renders dynamically provided categories as pill-styled buttons, plus the "Interested Events" action button.
  */
 export function CategoryBar() {
   const { categories, selectedCategory, setSelectedCategory, setShowAuthModal } = useEvents();
@@ -19,10 +22,13 @@ export function CategoryBar() {
   };
 
   return (
-    <div className="w-full bg-slate-950 border-b border-slate-900/80 px-4 md:px-8 py-3">
+    <nav
+      aria-label="Category Navigation"
+      className="w-full bg-slate-950/90 border-b border-slate-900 px-4 md:px-8 py-3 backdrop-blur-md"
+    >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        {/* Scrollable Categories List */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+        {/* Horizontal Scrollable Categories Container */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 scroll-smooth">
           {categories.map((cat) => (
             <CategoryPill
               key={cat.id}
@@ -33,18 +39,20 @@ export function CategoryBar() {
           ))}
         </div>
 
-        {/* Interested Events Action Button */}
+        {/* Interested Events Action Button (Visually & functionally distinct) */}
         <button
           onClick={handleInterestedClick}
-          className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 ${
+          aria-pressed={selectedCategory === 'interested'}
+          className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${
             selectedCategory === 'interested'
-              ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-600/30'
-              : 'border-slate-800 bg-slate-900 text-slate-300 hover:border-purple-500/50 hover:text-purple-300'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500 text-white shadow-lg shadow-purple-600/30'
+              : 'border-purple-500/30 bg-purple-950/20 text-purple-300 hover:bg-purple-900/30 hover:border-purple-500/60'
           }`}
         >
-          Interested Events
+          <Bookmark className="w-3.5 h-3.5 fill-current text-purple-400" />
+          <span>Interested Events</span>
         </button>
       </div>
-    </div>
+    </nav>
   );
 }
