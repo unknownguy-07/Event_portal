@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { FeaturedSlide } from './FeaturedSlide';
+import { SkeletonFeaturedCarousel } from './SkeletonFeaturedCarousel';
 import { useEvents } from '@/hooks/useEvents';
 
 /**
  * FeaturedCarousel Component
  * Single rotating banner hero with 5s auto-advance, hover/focus pause,
- * arrow buttons, pagination dots, and mobile touch swipe support.
+ * arrow buttons, pagination dots, touch swipe gestures, and loading skeleton support.
  */
-export function FeaturedCarousel() {
+export function FeaturedCarousel({ isLoading = false }) {
   const { featuredEvents } = useEvents();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -33,14 +34,14 @@ export function FeaturedCarousel() {
 
   // Auto-advance timer (5000ms = 5s)
   useEffect(() => {
-    if (isPaused || totalSlides <= 1) return;
+    if (isPaused || totalSlides <= 1 || isLoading) return;
 
     const timer = setInterval(() => {
       nextSlide();
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [isPaused, totalSlides, nextSlide]);
+  }, [isPaused, totalSlides, nextSlide, isLoading]);
 
   // Touch gesture handlers for mobile swiping
   const handleTouchStart = (e) => {
@@ -67,6 +68,10 @@ export function FeaturedCarousel() {
     touchEndX.current = 0;
   };
 
+  if (isLoading) {
+    return <SkeletonFeaturedCarousel />;
+  }
+
   if (!totalSlides) return null;
 
   return (
@@ -79,7 +84,7 @@ export function FeaturedCarousel() {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="relative max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-2 group"
+      className="relative max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-2 group animate-fade-in"
     >
       {/* Featured Slide View */}
       <div className="relative">
@@ -93,7 +98,7 @@ export function FeaturedCarousel() {
               prevSlide();
             }}
             aria-label="Previous featured event"
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-slate-700/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 shadow-xl z-20"
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-slate-700/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 shadow-xl z-20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -107,7 +112,7 @@ export function FeaturedCarousel() {
               nextSlide();
             }}
             aria-label="Next featured event"
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-slate-700/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 shadow-xl z-20"
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-slate-700/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 shadow-xl z-20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -121,7 +126,7 @@ export function FeaturedCarousel() {
             <button
               key={slide.id || idx}
               onClick={() => setCurrentIndex(idx)}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 idx === currentIndex
                   ? 'w-8 bg-indigo-500 shadow-sm shadow-indigo-500/50'
                   : 'w-2 bg-slate-800 hover:bg-slate-700'

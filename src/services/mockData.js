@@ -4,9 +4,9 @@
  */
 
 export const mockCollegeInfo = {
-  name: "Stanford University",
-  address: "450 Jane Stanford Way, Stanford, CA 94305",
-  mapsQueryUrl: "https://www.google.com/maps/search/?api=1&query=Stanford+University+450+Jane+Stanford+Way+Stanford+CA+94305",
+  name: "Manav Rachna University",
+  address: "Sector 43, Aravalli Hills, Delhi-Surajkund Road, Faridabad, Haryana 121004, India",
+  mapsQueryUrl: "https://www.google.com/maps/search/?api=1&query=Manav+Rachna+University+Sector+43+Aravalli+Hills+Delhi-Surajkund+Road+Faridabad+Haryana+121004+India",
 };
 
 export const mockCategories = [
@@ -22,8 +22,8 @@ export const mockCategories = [
 export const mockFeaturedEvents = [
   {
     id: "feat-1",
-    title: "HackStan 2026: AI & Future Tech",
-    tagline: "Build cutting-edge AI applications with $10,000 in prizes",
+    title: "HackMRU 2026: AI & Future Tech",
+    tagline: "Build cutting-edge AI applications with ₹1,00,000 in prizes",
     image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
     detailUrl: "/events/feat-1",
   },

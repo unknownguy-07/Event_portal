@@ -4,23 +4,35 @@ import { CategoryBar } from '@/components/navigation/CategoryBar';
 import { FeaturedCarousel } from '@/components/carousel/FeaturedCarousel';
 import { EventGrid } from '@/components/events/EventGrid';
 import { AuthPromptModal } from '@/components/common/AuthPromptModal';
+import { useEvents } from '@/hooks/useEvents';
 
 /**
- * Main LandingPage combining the sections in PRD vertical order:
- * 1. NavigationBar
- * 2. CategoryBar
- * 3. FeaturedCarousel
- * 4. EventListingControls (inside EventGrid)
- * 5. EventGrid
+ * Main LandingPage component.
+ * Features:
+ * - Automatically hides FeaturedCarousel with a smooth transition when user types in SearchBar.
+ * - Restores FeaturedCarousel when search query is cleared.
  */
 export function LandingPage() {
+  const { searchQuery } = useEvents();
+  const isSearching = Boolean(searchQuery && searchQuery.trim().length > 0);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between">
       <div>
         <NavigationBar />
         <CategoryBar />
         <main>
-          <FeaturedCarousel />
+          {/* Featured Events Hero Container with Smooth Fade & Height Transition */}
+          <div
+            className={`transition-all duration-500 ease-in-out overflow-hidden ${
+              isSearching
+                ? 'max-h-0 opacity-0 py-0 pointer-events-none'
+                : 'max-h-[600px] opacity-100'
+            }`}
+          >
+            <FeaturedCarousel />
+          </div>
+
           <EventGrid />
         </main>
       </div>

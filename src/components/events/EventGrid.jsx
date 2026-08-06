@@ -8,7 +8,7 @@ import { SortDropdown } from '@/components/controls/SortDropdown';
 /**
  * EventGrid Component
  * Responsible for displaying the controls header, responsive card grid (Desktop 3-col, Tablet 2-col, Mobile 1-col),
- * loading skeleton placeholders, and context-aware empty states.
+ * loading skeleton placeholders, and context-aware empty states with subtle animations.
  */
 export function EventGrid({ isLoading = false }) {
   const { displayedEvents, sortBy, setSortBy, selectedCategory, searchQuery } = useEvents();
@@ -42,7 +42,10 @@ export function EventGrid({ isLoading = false }) {
   const emptyState = renderEmptyState();
 
   return (
-    <section aria-label="Events Grid" className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+    <section
+      aria-label="Events Listing Section"
+      className="max-w-7xl mx-auto px-4 md:px-8 py-8 animate-fade-in"
+    >
       {/* Event Listing Controls Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-900">
         <div>
@@ -65,7 +68,7 @@ export function EventGrid({ isLoading = false }) {
         <SkeletonEventGrid count={6} />
       ) : displayedEvents.length === 0 ? (
         /* Empty State */
-        <div className="text-center py-16 bg-slate-900/40 border border-slate-800 rounded-3xl p-8 max-w-md mx-auto shadow-xl">
+        <div className="text-center py-16 bg-slate-900/40 border border-slate-800 rounded-3xl p-8 max-w-md mx-auto shadow-xl animate-fade-in">
           <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-4 shadow-inner">
             {emptyState.icon}
           </div>
