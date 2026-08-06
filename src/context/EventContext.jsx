@@ -1,23 +1,63 @@
-import React, { createContext, useState, useMemo } from 'react';
-import { mockEvents, mockCategories, mockCollegeInfo, mockFeaturedEvents } from '@/services/mockData';
+import React, { createContext, useState, useEffect, useMemo } from 'react';
+import {
+  getEvents,
+  getCategories,
+  getFeaturedEvents,
+  getCollegeInfo,
+  toggleBookmarkInDb,
+} from '@/services/eventService';
+import { useAuth } from '@/hooks/useAuth';
 
 export const EventContext = createContext(null);
 
 export function EventProvider({ children }) {
-  const [events, setEvents] = useState(mockEvents);
-  const [categories] = useState(mockCategories);
-  const [featuredEvents] = useState(mockFeaturedEvents);
-  const [collegeInfo] = useState(mockCollegeInfo);
+  const { currentUser } = useAuth();
+
+  const [events, setEvents] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [featuredEvents, setFeaturedEvents] = useState([]);
+  const [collegeInfo, setCollegeInfo] = useState({});
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('latest'); // 'latest' | 'fee_asc' | 'fee_desc'
-  // Pre-seed sample bookmarked IDs for interactive preview (evt-101, evt-103)
+  const [sortBy, setSortBy] = useState('latest');
   const [bookmarkedIds, setBookmarkedIds] = useState(new Set(['evt-101', 'evt-103']));
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState(null); // 'interested' | { type: 'bookmark', eventId }
+  const [pendingAction, setPendingAction] = useState(null);
+
+  // Fetch initial data on mount via eventService abstraction layer
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      setIsLoadingEvents(true);
+      try {
+        const [evts, cats, featEvts, info] = await Promise.all([
+          getEvents(),
+          getCategories(),
+          getFeaturedEvents(),
+          getCollegeInfo(),
+        ]);
+        if (isMounted) {
+          setEvents(evts);
+          setCategories(cats);
+          setFeaturedEvents(featEvts);
+          setCollegeInfo(info);
+        }
+      } catch (err) {
+        console.error('Failed to load event portal data:', err);
+      } finally {
+        if (isMounted) setIsLoadingEvents(false);
+      }
+    }
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleBookmark = (eventId) => {
+    const isCurrentlyBookmarked = bookmarkedIds.has(eventId);
     setBookmarkedIds((prev) => {
       const updated = new Set(prev);
       if (updated.has(eventId)) {
@@ -27,6 +67,11 @@ export function EventProvider({ children }) {
       }
       return updated;
     });
+
+    // Delegate database persistence to eventService
+    if (currentUser?.uid) {
+      toggleBookmarkInDb(currentUser.uid, eventId, isCurrentlyBookmarked);
+    }
   };
 
   // Computed displayed events based on search, category, and sorting
@@ -56,7 +101,6 @@ export function EventProvider({ children }) {
     } else if (sortBy === 'fee_desc') {
       result.sort((a, b) => b.rawFee - a.rawFee);
     } else {
-      // 'latest' default sort by createdAt desc
       result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
@@ -69,6 +113,7 @@ export function EventProvider({ children }) {
     categories,
     featuredEvents,
     collegeInfo,
+    isLoadingEvents,
     selectedCategory,
     setSelectedCategory,
     searchQuery,

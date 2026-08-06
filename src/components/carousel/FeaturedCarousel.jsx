@@ -9,8 +9,8 @@ import { useEvents } from '@/hooks/useEvents';
  * Single rotating banner hero with 5s auto-advance, hover/focus pause,
  * arrow buttons, pagination dots, touch swipe gestures, and loading skeleton support.
  */
-export function FeaturedCarousel({ isLoading = false }) {
-  const { featuredEvents } = useEvents();
+export function FeaturedCarousel() {
+  const { featuredEvents, isLoadingEvents } = useEvents();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -34,14 +34,14 @@ export function FeaturedCarousel({ isLoading = false }) {
 
   // Auto-advance timer (5000ms = 5s)
   useEffect(() => {
-    if (isPaused || totalSlides <= 1 || isLoading) return;
+    if (isPaused || totalSlides <= 1 || isLoadingEvents) return;
 
     const timer = setInterval(() => {
       nextSlide();
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [isPaused, totalSlides, nextSlide, isLoading]);
+  }, [isPaused, totalSlides, nextSlide, isLoadingEvents]);
 
   // Touch gesture handlers for mobile swiping
   const handleTouchStart = (e) => {
@@ -68,7 +68,7 @@ export function FeaturedCarousel({ isLoading = false }) {
     touchEndX.current = 0;
   };
 
-  if (isLoading) {
+  if (isLoadingEvents) {
     return <SkeletonFeaturedCarousel />;
   }
 

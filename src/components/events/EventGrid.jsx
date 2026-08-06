@@ -10,8 +10,15 @@ import { SortDropdown } from '@/components/controls/SortDropdown';
  * Responsible for displaying the controls header, responsive card grid (Desktop 3-col, Tablet 2-col, Mobile 1-col),
  * loading skeleton placeholders, and context-aware empty states with subtle animations.
  */
-export function EventGrid({ isLoading = false }) {
-  const { displayedEvents, sortBy, setSortBy, selectedCategory, searchQuery } = useEvents();
+export function EventGrid() {
+  const {
+    displayedEvents,
+    sortBy,
+    setSortBy,
+    selectedCategory,
+    searchQuery,
+    isLoadingEvents,
+  } = useEvents();
 
   // Determine empty state icon & copy based on current active filter
   const renderEmptyState = () => {
@@ -64,7 +71,7 @@ export function EventGrid({ isLoading = false }) {
       </div>
 
       {/* Loading Skeleton State */}
-      {isLoading ? (
+      {isLoadingEvents ? (
         <SkeletonEventGrid count={6} />
       ) : displayedEvents.length === 0 ? (
         /* Empty State */

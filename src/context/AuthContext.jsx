@@ -1,27 +1,50 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
+import {
+  subscribeToAuthChanges,
+  loginWithGoogle,
+  logoutUser,
+} from '@/services/authService';
 
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null); // null = unauthenticated
-  const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthChanges((user) => {
+      setCurrentUser(user);
+      setLoading(false);
+    });
+
+    // If unauthenticated / mock mode initialization
+    setLoading(false);
+
+    return () => unsubscribe();
+  }, []);
 
   const signInWithGoogle = async () => {
-    // Stub implementation for Phase 1 / offline state
     setLoading(true);
-    setTimeout(() => {
-      setCurrentUser({
-        uid: "user-123",
-        displayName: "Student User",
-        email: "student@university.edu",
-        photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80",
-      });
+    try {
+      const user = await loginWithGoogle();
+      setCurrentUser(user);
+    } catch (error) {
+      console.error('Sign in error:', error);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   const signOut = async () => {
-    setCurrentUser(null);
+    setLoading(true);
+    try {
+      await logoutUser();
+      setCurrentUser(null);
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const value = {
