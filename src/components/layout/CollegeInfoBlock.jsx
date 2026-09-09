@@ -13,7 +13,7 @@ export function CollegeInfoBlock({ name, address, mapsQueryUrl, className = '' }
 
   return (
     <div className={`flex flex-col items-center md:items-start ${className}`}>
-      <span className="text-xs md:text-sm font-semibold text-slate-100 tracking-wide">
+      <span className="text-xs md:text-sm font-semibold text-[#F1F0F5] tracking-wide">
         {name}
       </span>
       <a
@@ -21,9 +21,9 @@ export function CollegeInfoBlock({ name, address, mapsQueryUrl, className = '' }
         target="_blank"
         rel="noopener noreferrer"
         title="Open in Google Maps"
-        className="group inline-flex items-center gap-1.5 text-[11px] md:text-xs text-slate-400 hover:text-indigo-400 transition-colors duration-200 mt-0.5"
+        className="group inline-flex items-center gap-1.5 text-[11px] md:text-xs text-[#9CA3B5] hover:text-[#C084FC] transition-colors duration-200 mt-0.5"
       >
-        <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-500 group-hover:text-indigo-400 transition-colors" />
+        <MapPin className="w-3.5 h-3.5 shrink-0 text-[#8B4DFF]/80 group-hover:text-[#C084FC] transition-colors" />
         <span className="underline-offset-2 group-hover:underline line-clamp-1">
           {address}
         </span>

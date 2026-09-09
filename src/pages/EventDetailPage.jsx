@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -9,26 +9,37 @@ import {
   Tag,
   Bookmark,
   Sparkles,
+  CheckCircle2,
+  Ticket,
 } from 'lucide-react';
 import { useEvents } from '@/hooks/useEvents';
 import { useAuth } from '@/hooks/useAuth';
 import { NavigationBar } from '@/components/layout/NavigationBar';
 import { AuthPromptModal } from '@/components/common/AuthPromptModal';
+import { TicketModal } from '@/components/enrollment/TicketModal';
 
 /**
  * EventDetailPage Component
- * Displays complete event details:
- * - Full description
- * - Venue
- * - Contact Number (click to call)
- * - Organizer
- * - Registration Type (Free/Paid)
- * - Date, Category, Banner image, and Bookmark interaction
+ * Displays complete event details with real-time Firebase registration
  */
 export function EventDetailPage() {
   const { id } = useParams();
-  const { events, featuredEvents, bookmarkedIds, toggleBookmark, setShowAuthModal, setPendingAction } = useEvents();
-  const { isAuthenticated } = useAuth();
+  const {
+    events,
+    featuredEvents,
+    bookmarkedIds,
+    toggleBookmark,
+    setShowAuthModal,
+    setPendingAction,
+    isEventRegistered,
+    registerUserForEvent,
+    userRegistrations,
+  } = useEvents();
+  const { isAuthenticated, currentUser } = useAuth();
+
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showTicketModal, setShowTicketModal] = useState(false);
 
   const event =
     events.find((e) => e.id === id) ||
@@ -36,6 +47,10 @@ export function EventDetailPage() {
     events[0]; // Fallback to first event if ID not found
 
   const isBookmarked = event ? bookmarkedIds.has(event.id) : false;
+  const isRegistered = event ? isEventRegistered(event.id) : false;
+  const registrationRecord = event
+    ? userRegistrations.find((r) => r.eventId === event.id)
+    : null;
 
   const handleBookmarkClick = () => {
     if (!isAuthenticated) {
@@ -46,15 +61,36 @@ export function EventDetailPage() {
     }
   };
 
+  const handleRegister = async () => {
+    if (!isAuthenticated) {
+      setPendingAction({ type: 'register', eventId: event.id });
+      setShowAuthModal(true);
+      return;
+    }
+
+    if (isRegistered) return;
+
+    setIsRegistering(true);
+    try {
+      await registerUserForEvent(event);
+      setSuccessMessage('Registration confirmed! Your digital event pass is generated.');
+      setTimeout(() => setSuccessMessage(''), 6000);
+    } catch (err) {
+      alert(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   if (!event) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between">
+      <div className="min-h-screen bg-[#080811] text-[#F1F0F5] flex flex-col justify-between">
         <NavigationBar />
         <div className="text-center py-20">
-          <h2 className="text-2xl font-bold">Event Not Found</h2>
+          <h2 className="text-2xl font-bold text-[#F1F0F5]">Event Not Found</h2>
           <Link
             to="/"
-            className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-indigo-600 text-white font-semibold text-xs rounded-full"
+            className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-gradient-to-r from-[#8B4DFF] to-[#6E2FF0] text-white font-semibold text-xs rounded-full shadow-lg shadow-purple-600/30"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Landing Page
           </Link>
@@ -69,7 +105,7 @@ export function EventDetailPage() {
     event.fee?.toLowerCase() === 'free';
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#080811] text-[#F1F0F5] flex flex-col justify-between selection:bg-[#8B4DFF]/40">
       <div>
         <NavigationBar />
 
@@ -78,7 +114,7 @@ export function EventDetailPage() {
           <div className="mb-6">
             <Link
               to="/"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-indigo-400 transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-[#9CA3B5] hover:text-[#C084FC] transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Campus Events</span>
@@ -86,22 +122,22 @@ export function EventDetailPage() {
           </div>
 
           {/* Hero Banner Image */}
-          <div className="relative w-full h-[300px] sm:h-[400px] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 mb-8 bg-slate-900">
+          <div className="relative w-full h-[300px] sm:h-[400px] rounded-3xl overflow-hidden shadow-2xl shadow-purple-950/40 border border-purple-500/20 mb-8 bg-[#12101F]">
             <img
               src={event.image || event.thumbnail}
               alt={event.name || event.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#080811] via-[#080811]/60 to-[#080811]/15" />
 
             {/* Floating Bookmark & Category Badges */}
             <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 z-10">
-              <span className="bg-slate-950/80 backdrop-blur-md text-indigo-300 text-xs font-extrabold px-3 py-1 rounded-full border border-indigo-500/30">
+              <span className="bg-[#080811]/80 backdrop-blur-md text-[#C084FC] text-xs font-extrabold px-3 py-1 rounded-full border border-purple-400/30 shadow-sm">
                 {event.category}
               </span>
               {event.organizer && (
-                <span className="bg-purple-950/80 backdrop-blur-md text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-500/30 flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5" />
+                <span className="bg-[#18142A]/85 backdrop-blur-md text-[#F1F0F5] text-xs font-bold px-3 py-1 rounded-full border border-purple-500/20 shadow-sm flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-[#C084FC]" />
                   {event.organizer}
                 </span>
               )}
@@ -110,10 +146,10 @@ export function EventDetailPage() {
             <div className="absolute top-4 right-4 z-10">
               <button
                 onClick={handleBookmarkClick}
-                className={`p-3 rounded-full backdrop-blur-md border transition-all duration-200 ${
+                className={`p-3 rounded-full backdrop-blur-md border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B5CFF]/50 ${
                   isBookmarked
-                    ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-600/40'
-                    : 'bg-slate-950/80 border-slate-700 text-slate-300 hover:text-white'
+                    ? 'bg-gradient-to-br from-[#8B4DFF] to-[#6E2FF0] border-purple-400/50 text-white shadow-lg shadow-purple-600/50'
+                    : 'bg-[#080811]/80 border-purple-500/25 text-[#9CA3B5] hover:text-white hover:border-purple-500/50'
                 }`}
                 aria-label="Bookmark event"
               >
@@ -122,11 +158,11 @@ export function EventDetailPage() {
             </div>
 
             <div className="absolute bottom-6 left-6 right-6 z-10">
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-md mb-2">
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-[#F1F0F5] tracking-tight drop-shadow-md mb-2">
                 {event.name || event.title}
               </h1>
               {event.tagline && (
-                <p className="text-slate-300 text-sm sm:text-base font-normal max-w-2xl">
+                <p className="text-[#9CA3B5] text-sm sm:text-base font-normal max-w-2xl">
                   {event.tagline}
                 </p>
               )}
@@ -137,12 +173,12 @@ export function EventDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column: Full Description */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-                <h2 className="text-lg font-extrabold text-white mb-4 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-indigo-400" />
+              <div className="bg-gradient-to-b from-[#141124] to-[#100E1C] border border-purple-500/15 rounded-3xl p-6 sm:p-8 shadow-xl">
+                <h2 className="text-lg font-extrabold text-[#F1F0F5] mb-4 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-[#C084FC]" />
                   <span>About This Event</span>
                 </h2>
-                <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">
+                <p className="text-[#9CA3B5] text-sm leading-relaxed whitespace-pre-line">
                   {event.description ||
                     'Join us for this exciting university event! Connect with peers, gain valuable insights, and participate in hands-on activities led by experienced organizers.'}
                 </p>
@@ -152,27 +188,27 @@ export function EventDetailPage() {
             {/* Right Column: Metadata Cards */}
             <div className="space-y-6">
               {/* Event Metadata Card */}
-              <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                <h3 className="text-sm font-bold text-slate-200 border-b border-slate-800 pb-3 uppercase tracking-wider">
+              <div className="bg-gradient-to-b from-[#141124] to-[#100E1C] border border-purple-500/15 rounded-3xl p-6 shadow-xl space-y-4">
+                <h3 className="text-xs font-bold text-[#9CA3B5] border-b border-purple-500/15 pb-3 uppercase tracking-wider">
                   Event Highlights
                 </h3>
 
                 {/* Date */}
                 <div className="flex items-start gap-3 text-xs">
-                  <Calendar className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                  <Calendar className="w-4 h-4 text-[#9B5CFF] shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-slate-400 block font-medium">Date & Time</span>
-                    <span className="text-slate-100 font-semibold">{event.date}</span>
+                    <span className="text-[#9CA3B5] block font-medium text-[11px]">Date & Time</span>
+                    <span className="text-[#F1F0F5] font-semibold">{event.date}</span>
                   </div>
                 </div>
 
                 {/* Venue */}
                 {event.venue && (
                   <div className="flex items-start gap-3 text-xs">
-                    <MapPin className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                    <MapPin className="w-4 h-4 text-[#9B5CFF] shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-slate-400 block font-medium">Venue Location</span>
-                      <span className="text-slate-100 font-semibold">{event.venue}</span>
+                      <span className="text-[#9CA3B5] block font-medium text-[11px]">Venue Location</span>
+                      <span className="text-[#F1F0F5] font-semibold">{event.venue}</span>
                     </div>
                   </div>
                 )}
@@ -180,10 +216,10 @@ export function EventDetailPage() {
                 {/* Organizer */}
                 {event.organizer && (
                   <div className="flex items-start gap-3 text-xs">
-                    <Building2 className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                    <Building2 className="w-4 h-4 text-[#C084FC] shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-slate-400 block font-medium">Organizing Body</span>
-                      <span className="text-purple-300 font-bold">{event.organizer}</span>
+                      <span className="text-[#9CA3B5] block font-medium text-[11px]">Organizing Body</span>
+                      <span className="text-[#C084FC] font-bold">{event.organizer}</span>
                     </div>
                   </div>
                 )}
@@ -191,12 +227,12 @@ export function EventDetailPage() {
                 {/* Contact Number */}
                 {event.contactNumber && (
                   <div className="flex items-start gap-3 text-xs">
-                    <Phone className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <Phone className="w-4 h-4 text-[#4FD1A5] shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-slate-400 block font-medium">Organizer Contact</span>
+                      <span className="text-[#9CA3B5] block font-medium text-[11px]">Organizer Contact</span>
                       <a
                         href={`tel:${event.contactNumber.replace(/\s+/g, '')}`}
-                        className="text-emerald-400 font-semibold hover:underline"
+                        className="text-[#4FD1A5] font-semibold hover:underline"
                       >
                         {event.contactNumber}
                       </a>
@@ -206,14 +242,14 @@ export function EventDetailPage() {
 
                 {/* Fee & Registration Type */}
                 <div className="flex items-start gap-3 text-xs">
-                  <Tag className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                  <Tag className="w-4 h-4 text-[#9B5CFF] shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-slate-400 block font-medium">Registration Fee</span>
+                    <span className="text-[#9CA3B5] block font-medium text-[11px]">Registration Fee</span>
                     <span
                       className={`inline-block font-extrabold mt-1 px-3 py-1 rounded-full text-xs ${
                         isFree
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20'
+                          ? 'bg-[#4FD1A5]/12 text-[#4FD1A5] border border-[#4FD1A5]/30'
+                          : 'bg-[#8B4DFF]/15 text-[#C084FC] border border-[#8B4DFF]/30'
                       }`}
                     >
                       {isFree ? 'Free Registration' : `Paid (${event.fee})`}
@@ -221,13 +257,52 @@ export function EventDetailPage() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-800">
-                  <button
-                    onClick={() => alert(`Registration flow for ${event.name || event.title} will open here!`)}
-                    className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold rounded-full shadow-lg shadow-indigo-600/30 transition-all duration-200"
-                  >
-                    Register for Event
-                  </button>
+                <div className="pt-4 border-t border-purple-500/15 space-y-3">
+                  {successMessage && (
+                    <div className="p-3 bg-[#4FD1A5]/12 border border-[#4FD1A5]/30 rounded-xl text-xs text-[#4FD1A5] flex items-center gap-2 animate-fade-in">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>{successMessage}</span>
+                    </div>
+                  )}
+
+                  {isRegistered ? (
+                    <div className="space-y-2.5">
+                      <div className="w-full py-2.5 px-4 bg-[#4FD1A5]/12 border border-[#4FD1A5]/30 rounded-full text-center flex items-center justify-center gap-2 text-xs font-bold text-[#4FD1A5] shadow-sm shadow-[#4FD1A5]/10">
+                        <CheckCircle2 className="w-4 h-4 text-[#4FD1A5]" />
+                        <span>Registered ✓</span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowTicketModal(true)}
+                          className="flex-1 py-2.5 bg-gradient-to-r from-[#8B4DFF] to-[#6E2FF0] hover:from-[#9B5CFF] hover:to-[#8B4DFF] text-white text-xs font-bold rounded-full shadow-md shadow-purple-600/30 border border-purple-400/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+                        >
+                          <Ticket className="w-3.5 h-3.5" />
+                          <span>View Digital Pass</span>
+                        </button>
+
+                        <Link
+                          to="/my-events"
+                          className="px-4 py-2.5 bg-[#12101F] hover:bg-[#18152A] text-[#C084FC] hover:text-white text-xs font-semibold rounded-full border border-purple-500/20 text-center flex items-center justify-center transition-colors"
+                        >
+                          My Events
+                        </Link>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleRegister}
+                      disabled={isRegistering}
+                      className="w-full py-3 bg-gradient-to-r from-[#8B4DFF] via-[#9B5CFF] to-[#6E2FF0] hover:from-[#9B5CFF] hover:to-[#8B4DFF] text-white text-xs font-bold rounded-full shadow-lg shadow-purple-600/35 border border-purple-400/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-purple-500/50 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {isRegistering ? (
+                        <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      ) : (
+                        <span>Register for Event</span>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -235,10 +310,30 @@ export function EventDetailPage() {
         </main>
       </div>
 
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500 mt-12">
-        © 2026 Manav Rachna University EventPortal. All rights reserved.
+      <footer className="border-t border-purple-500/10 py-8 text-center text-xs text-[#6B6882] bg-[#080811]/80 backdrop-blur-md mt-12">
+        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div>
+            <span className="font-bold text-[#F1F0F5] tracking-tight">Event<span className="text-[#9B5CFF]">Portal</span></span>
+            <span className="ml-2 text-[11px] text-[#6B6882]">• Campus Event Detail</span>
+          </div>
+          <p className="text-[11px] text-[#6B6882]">
+            © 2026 Manav Rachna University. All rights reserved.
+          </p>
+        </div>
       </footer>
 
+      <TicketModal
+        isOpen={showTicketModal}
+        onClose={() => setShowTicketModal(false)}
+        ticketData={{
+          event,
+          enrollment: registrationRecord || {
+            ticketId: `MRU-${event?.id?.toUpperCase() || 'PASS'}`,
+            status: 'Confirmed',
+          },
+          user: currentUser,
+        }}
+      />
       <AuthPromptModal />
     </div>
   );

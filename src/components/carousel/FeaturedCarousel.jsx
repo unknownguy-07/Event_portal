@@ -98,7 +98,7 @@ export function FeaturedCarousel() {
               prevSlide();
             }}
             aria-label="Previous featured event"
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-slate-700/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 shadow-xl z-20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-[#080811]/70 hover:bg-[#161324] border border-purple-500/30 hover:border-purple-500/60 text-[#F1F0F5] hover:text-white backdrop-blur-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 shadow-xl shadow-purple-950/50 z-20 focus:outline-none focus:ring-2 focus:ring-[#9B5CFF]/50"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -112,7 +112,7 @@ export function FeaturedCarousel() {
               nextSlide();
             }}
             aria-label="Next featured event"
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-slate-700/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 shadow-xl z-20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-[#080811]/70 hover:bg-[#161324] border border-purple-500/30 hover:border-purple-500/60 text-[#F1F0F5] hover:text-white backdrop-blur-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 shadow-xl shadow-purple-950/50 z-20 focus:outline-none focus:ring-2 focus:ring-[#9B5CFF]/50"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -126,10 +126,10 @@ export function FeaturedCarousel() {
             <button
               key={slide.id || idx}
               onClick={() => setCurrentIndex(idx)}
-              className={`h-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              className={`h-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#9B5CFF]/50 ${
                 idx === currentIndex
-                  ? 'w-8 bg-indigo-500 shadow-sm shadow-indigo-500/50'
-                  : 'w-2 bg-slate-800 hover:bg-slate-700'
+                  ? 'w-8 bg-gradient-to-r from-[#8B4DFF] to-[#9B5CFF] shadow-sm shadow-purple-600/50'
+                  : 'w-2 bg-[#1A162B] hover:bg-[#282142]'
               }`}
               aria-label={`Jump to slide ${idx + 1}: ${slide.title}`}
               aria-current={idx === currentIndex ? 'true' : 'false'}

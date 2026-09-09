@@ -17,7 +17,7 @@ export function LandingPage() {
   const isSearching = Boolean(searchQuery && searchQuery.trim().length > 0);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#080811] text-[#F1F0F5] flex flex-col justify-between relative selection:bg-[#8B4DFF]/40">
       <div>
         <NavigationBar />
         <CategoryBar />
@@ -37,8 +37,16 @@ export function LandingPage() {
         </main>
       </div>
 
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        © 2026 University EventPortal. All rights reserved.
+      <footer className="border-t border-purple-500/10 py-8 text-center text-xs text-[#6B6882] bg-[#080811]/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div>
+            <span className="font-bold text-[#F1F0F5] tracking-tight">Event<span className="text-[#9B5CFF]">Portal</span></span>
+            <span className="ml-2 text-[11px] text-[#6B6882]">• AI-Powered Campus Discovery</span>
+          </div>
+          <p className="text-[11px] text-[#6B6882]">
+            © 2026 Manav Rachna University. All rights reserved.
+          </p>
+        </div>
       </footer>
 
       <AuthPromptModal />

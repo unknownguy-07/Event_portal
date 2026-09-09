@@ -17,6 +17,7 @@ export function EventGrid() {
     sortBy,
     setSortBy,
     selectedCategory,
+    setSelectedCategory,
     searchQuery,
     registrationTypeFilter,
     organizerFilter,
@@ -27,16 +28,17 @@ export function EventGrid() {
   const renderEmptyState = () => {
     if (selectedCategory === 'interested') {
       return {
-        icon: <BookmarkX className="w-8 h-8 text-purple-400" />,
-        title: 'No Bookmarked Events',
+        icon: <BookmarkX className="w-8 h-8 text-[#C084FC]" />,
+        title: 'No bookmarked events yet',
         message:
-          "You haven't saved any events yet. Click the bookmark icon on any event card to add it to your saved list!",
+          "You haven't saved any events yet. Click the bookmark icon on any event card to save events to your list!",
+        showExplore: true,
       };
     }
 
     if (searchQuery) {
       return {
-        icon: <SearchX className="w-8 h-8 text-indigo-400" />,
+        icon: <SearchX className="w-8 h-8 text-[#9B5CFF]" />,
         title: 'No Matching Events Found',
         message: `We couldn't find any events matching "${searchQuery}". Try checking your spelling or adjusting filters.`,
       };
@@ -44,14 +46,14 @@ export function EventGrid() {
 
     if (registrationTypeFilter !== 'all' || organizerFilter !== 'all') {
       return {
-        icon: <CalendarX className="w-8 h-8 text-slate-400" />,
+        icon: <CalendarX className="w-8 h-8 text-[#9CA3B5]" />,
         title: 'No Events Match Selected Filters',
         message: 'No events match the selected Fee or Organizer filters. Try changing or clearing your filter criteria.',
       };
     }
 
     return {
-      icon: <CalendarX className="w-8 h-8 text-slate-400" />,
+      icon: <CalendarX className="w-8 h-8 text-[#9CA3B5]" />,
       title: 'No Events Available',
       message: 'There are currently no events listed under this category.',
     };
@@ -65,13 +67,13 @@ export function EventGrid() {
       className="max-w-7xl mx-auto px-4 md:px-8 py-8 animate-fade-in"
     >
       {/* Event Listing Controls Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-900">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-6 mb-6 border-b border-purple-500/10">
         <div>
-          <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">
+          <h2 className="text-xl md:text-2xl font-extrabold text-[#F1F0F5] tracking-tight">
             Explore Campus Events
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Showing <span className="text-indigo-400 font-semibold">{displayedEvents.length}</span> event{displayedEvents.length === 1 ? '' : 's'}
+          <p className="text-xs text-[#9CA3B5] mt-1">
+            Showing <span className="text-[#C084FC] font-semibold">{displayedEvents.length}</span> event{displayedEvents.length === 1 ? '' : 's'}
           </p>
         </div>
 
@@ -87,16 +89,24 @@ export function EventGrid() {
         <SkeletonEventGrid count={6} />
       ) : displayedEvents.length === 0 ? (
         /* Empty State */
-        <div className="text-center py-16 bg-slate-900/40 border border-slate-800 rounded-3xl p-8 max-w-md mx-auto shadow-xl animate-fade-in">
-          <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-4 shadow-inner">
+        <div className="text-center py-16 bg-[#12101F]/70 border border-purple-500/15 rounded-3xl p-8 max-w-md mx-auto shadow-xl shadow-purple-950/20 animate-fade-in">
+          <div className="w-14 h-14 rounded-2xl bg-[#161324] border border-purple-500/20 flex items-center justify-center mx-auto mb-4 shadow-inner">
             {emptyState.icon}
           </div>
-          <h3 className="text-slate-100 font-extrabold text-base mb-1">
+          <h3 className="text-[#F1F0F5] font-extrabold text-base mb-1">
             {emptyState.title}
           </h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-xs text-[#9CA3B5] leading-relaxed">
             {emptyState.message}
           </p>
+          {emptyState.showExplore && (
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className="mt-4 inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-[#8B4DFF] to-[#6E2FF0] hover:from-[#9B5CFF] hover:to-[#8B4DFF] text-white shadow-lg shadow-purple-600/30 border border-purple-400/30 transition-all hover:scale-105 cursor-pointer"
+            >
+              Explore Events
+            </button>
+          )}
         </div>
       ) : (
         /* Responsive Event Grid: Mobile (1 col), Tablet (2 cols), Desktop (3 cols) */

@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ─── Users Collection ──────────────────────────────────────────
+    // Each student can read and write only their own profile
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false; // Profiles are preserved for record integrity
+
+      // ─── User Bookmarks Subcollection ────────────────────────────
+      // Subcollection: users/{userId}/bookmarks/{eventId}
+      // Strictly personal: each authenticated user can only read, create, update, and delete their own bookmarks
+      match /bookmarks/{eventId} {
+        allow read, write, delete: if isOwner(userId);
+      }
+    }
+
+    // ─── Registrations Collection ──────────────────────────────────
+    // Keyed by {userId}_{eventId} or unique registration ID
+    match /registrations/{registrationId} {
+      // Allow user to read registration if they own the record
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        registrationId.matches('^' + request.auth.uid + '_.*')
+      );
+
+      // Allow user to create registration only for themselves
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['eventId', 'userId', 'registeredAt', 'status']);
+
+      // Allow user to update/cancel their own existing registration
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid;
+
+      allow delete: if false; // Registrations are soft-cancelled via status = 'cancelled'
+    }
+
+    // ─── Events Collection ─────────────────────────────────────────
+    // Public campus directory: anyone can view published university events
+    match /events/{eventId} {
+      allow read: if true;
+      // Event creation and updates restricted to authenticated organizers/admins
+      allow write: if isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'organizer'
+      );
+    }
+
+    // ─── Categories & College Info Collections ─────────────────────
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    match /collegeInfo/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    // ─── User Bookmarks / Preferences ──────────────────────────────
+    match /bookmarks/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}

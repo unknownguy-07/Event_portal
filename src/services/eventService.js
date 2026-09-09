@@ -3,10 +3,6 @@ import {
   getDocs,
   doc,
   getDoc,
-  setDoc,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
   query,
   orderBy,
 } from 'firebase/firestore';
@@ -91,24 +87,11 @@ export async function getCollegeInfo() {
   return mockCollegeInfo;
 }
 
-/**
- * Syncs user bookmark to Firestore 'users/{userId}/bookmarks' or fallback.
- */
-export async function toggleBookmarkInDb(userId, eventId, isCurrentlyBookmarked) {
-  if (isFirebaseConfigured && db && userId) {
-    try {
-      const userRef = doc(db, 'users', userId);
-      await setDoc(
-        userRef,
-        {
-          bookmarks: isCurrentlyBookmarked
-            ? arrayRemove(eventId)
-            : arrayUnion(eventId),
-        },
-        { merge: true }
-      );
-    } catch (err) {
-      console.warn('Firestore toggleBookmarkInDb error:', err.message);
-    }
-  }
-}
+// Re-export bookmark operations from dedicated bookmarkService
+export {
+  fetchUserBookmarks,
+  addBookmarkInDb,
+  removeBookmarkFromDb,
+  toggleBookmarkInDb,
+  subscribeToUserBookmarks,
+} from './bookmarkService';

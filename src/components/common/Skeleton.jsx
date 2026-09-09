@@ -5,6 +5,6 @@ import React from 'react';
  */
 export function Skeleton({ className = '' }) {
   return (
-    <div className={`animate-pulse bg-slate-800 rounded-xl ${className}`} />
+    <div className={`animate-pulse bg-[#1A162B] rounded-xl ${className}`} />
   );
 }

@@ -1,11 +1,17 @@
-import React, { createContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   getEvents,
   getCategories,
   getFeaturedEvents,
   getCollegeInfo,
   toggleBookmarkInDb,
+  subscribeToUserBookmarks,
 } from '@/services/eventService';
+import {
+  getUserEnrollments,
+  registerForEvent as serviceRegisterForEvent,
+  cancelRegistration as serviceCancelRegistration,
+} from '@/services/enrollmentService';
 import { mockOrganizers } from '@/services/mockData';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -27,9 +33,102 @@ export function EventProvider({ children }) {
   const [registrationTypeFilter, setRegistrationTypeFilter] = useState('all'); // 'all' | 'free' | 'paid'
   const [organizerFilter, setOrganizerFilter] = useState('all'); // 'all' | organizer name
 
-  const [bookmarkedIds, setBookmarkedIds] = useState(new Set(['evt-101', 'evt-103']));
+  const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
+  const [userRegistrations, setUserRegistrations] = useState([]);
+  const [isLoadingRegistrations, setIsLoadingRegistrations] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+
+  // Load user registrations whenever currentUser changes
+  const loadUserRegistrations = useCallback(async () => {
+    if (!currentUser?.uid) {
+      setUserRegistrations([]);
+      return;
+    }
+
+    setIsLoadingRegistrations(true);
+    try {
+      const records = await getUserEnrollments(currentUser.uid);
+      setUserRegistrations(records || []);
+    } catch (err) {
+      console.warn('Failed to load user registrations:', err);
+    } finally {
+      setIsLoadingRegistrations(false);
+    }
+  }, [currentUser?.uid]);
+
+  useEffect(() => {
+    loadUserRegistrations();
+  }, [loadUserRegistrations]);
+
+  // Synchronize personalized user bookmarks with Firestore whenever currentUser changes
+  useEffect(() => {
+    // Immediately clear bookmarks from React state (prevents previous user bookmarks leaking)
+    setBookmarkedIds(new Set());
+
+    if (!currentUser?.uid) {
+      return;
+    }
+
+    let isMounted = true;
+    const unsubscribe = subscribeToUserBookmarks(
+      currentUser.uid,
+      (ids) => {
+        if (isMounted) {
+          setBookmarkedIds(ids);
+        }
+      },
+      (err) => {
+        console.warn('[EventContext] Bookmarks subscription error:', err.message);
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, [currentUser?.uid]);
+
+  // Derived set of event IDs that the user is actively registered for
+  const userRegisteredIds = useMemo(() => {
+    const active = userRegistrations.filter(
+      (r) => r.status !== 'cancelled' && r.registrationStatus !== 'cancelled'
+    );
+    return new Set(active.map((r) => r.eventId));
+  }, [userRegistrations]);
+
+  const isEventRegistered = useCallback(
+    (eventId) => userRegisteredIds.has(eventId),
+    [userRegisteredIds]
+  );
+
+  const registerUserForEvent = async (event) => {
+    if (!currentUser?.uid) {
+      throw new Error('Authentication required');
+    }
+
+    const newRecord = await serviceRegisterForEvent(currentUser.uid, event, {
+      name: currentUser.displayName,
+      email: currentUser.email,
+    });
+
+    setUserRegistrations((prev) => [newRecord, ...prev]);
+    return newRecord;
+  };
+
+  const cancelUserRegistration = async (eventId) => {
+    if (!currentUser?.uid) return;
+    await serviceCancelRegistration(currentUser.uid, eventId);
+    setUserRegistrations((prev) =>
+      prev.map((r) =>
+        r.eventId === eventId
+          ? { ...r, status: 'cancelled', registrationStatus: 'cancelled' }
+          : r
+      )
+    );
+  };
 
   // Fetch initial data on mount via eventService abstraction layer
   useEffect(() => {
@@ -61,7 +160,14 @@ export function EventProvider({ children }) {
     };
   }, []);
 
-  const toggleBookmark = (eventId) => {
+  const toggleBookmark = (eventId, overrideUid) => {
+    const uid = overrideUid || currentUser?.uid;
+    if (!uid) {
+      setPendingAction({ type: 'bookmark', eventId });
+      setShowAuthModal(true);
+      return;
+    }
+
     const isCurrentlyBookmarked = bookmarkedIds.has(eventId);
     setBookmarkedIds((prev) => {
       const updated = new Set(prev);
@@ -73,9 +179,9 @@ export function EventProvider({ children }) {
       return updated;
     });
 
-    if (currentUser?.uid) {
-      toggleBookmarkInDb(currentUser.uid, eventId, isCurrentlyBookmarked);
-    }
+    toggleBookmarkInDb(uid, eventId, isCurrentlyBookmarked).catch((err) => {
+      console.warn('[EventContext] toggleBookmarkInDb error:', err.message);
+    });
   };
 
   // Computed displayed events based on search, category, registrationType, organizer, and sorting
@@ -155,6 +261,13 @@ export function EventProvider({ children }) {
     setOrganizerFilter,
     bookmarkedIds,
     toggleBookmark,
+    userRegistrations,
+    userRegisteredIds,
+    isLoadingRegistrations,
+    isEventRegistered,
+    registerUserForEvent,
+    cancelUserRegistration,
+    refreshRegistrations: loadUserRegistrations,
     showAuthModal,
     setShowAuthModal,
     pendingAction,

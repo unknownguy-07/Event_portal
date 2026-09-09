@@ -3,14 +3,20 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
+// Helper to sanitize environment variables
+const cleanEnv = (val) => {
+  if (typeof val !== 'string') return val;
+  return val.trim().replace(/^['"]|['"]$/g, '');
+};
+
 // Read Firebase Config from Vite Environment Variables
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: cleanEnv(import.meta.env.VITE_FIREBASE_API_KEY),
+  authDomain: cleanEnv(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+  projectId: cleanEnv(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+  storageBucket: cleanEnv(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
+  messagingSenderId: cleanEnv(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+  appId: cleanEnv(import.meta.env.VITE_FIREBASE_APP_ID),
 };
 
 // Check if valid Firebase configuration is provided
@@ -33,9 +39,13 @@ if (isFirebaseConfigured) {
     db = getFirestore(app);
     storage = getStorage(app);
     googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+    console.info('[Firebase] Initialized for project:', firebaseConfig.projectId);
   } catch (error) {
-    console.warn('Firebase initialization warning:', error.message);
+    console.warn('[Firebase] Initialization warning:', error.message);
   }
+} else {
+  console.warn('[Firebase] Environment variables not detected. Running in demo mode.');
 }
 
 export { app, auth, db, storage, googleProvider };

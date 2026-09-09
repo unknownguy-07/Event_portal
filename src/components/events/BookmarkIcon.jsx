@@ -17,10 +17,10 @@ export function BookmarkIcon({ isBookmarked, onClick }) {
       onClick={handleClick}
       aria-label={isBookmarked ? 'Remove event from bookmarks' : 'Bookmark event'}
       aria-pressed={isBookmarked}
-      className={`p-2 rounded-full backdrop-blur-md border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${
+      className={`p-2 rounded-full backdrop-blur-md border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B5CFF]/50 ${
         isBookmarked
-          ? 'bg-purple-600/90 border-purple-500 text-white shadow-lg shadow-purple-600/40 scale-105'
-          : 'bg-slate-950/70 border-slate-700/80 text-slate-300 hover:text-white hover:bg-slate-900 hover:border-slate-600'
+          ? 'bg-gradient-to-br from-[#8B4DFF] to-[#6E2FF0] border-purple-400/50 text-white shadow-lg shadow-purple-600/50 scale-105'
+          : 'bg-[#080811]/75 border-purple-500/20 text-[#9CA3B5] hover:text-white hover:bg-[#161324] hover:border-purple-500/40'
       }`}
     >
       <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
