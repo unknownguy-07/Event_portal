@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Building2, CheckCircle2 } from 'lucide-react';
 import { BookmarkIcon } from './BookmarkIcon';
+import { InterestedButton } from './InterestedButton';
 import { useEvents } from '@/hooks/useEvents';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -15,7 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
  * 5. Short Description (2-3 lines truncated)
  * 6. Date
  * 7. Registration fee (or "Free")
- * 8. Bookmark icon
+ * 8. Bookmark icon & Interested action button
  * 9. Registered badge indicator
  */
 export function EventCard({ event }) {
@@ -23,13 +24,16 @@ export function EventCard({ event }) {
   const {
     bookmarkedIds,
     toggleBookmark,
+    interestedIds,
+    toggleInterested,
     setShowAuthModal,
     setPendingAction,
     isEventRegistered,
   } = useEvents();
   const { isAuthenticated } = useAuth();
 
-  const isBookmarked = bookmarkedIds.has(event.id);
+  const isBookmarked = bookmarkedIds ? bookmarkedIds.has(event.id) : false;
+  const isInterested = interestedIds ? interestedIds.has(event.id) : false;
   const isRegistered = isEventRegistered ? isEventRegistered(event.id) : false;
 
   const handleCardClick = () => {
@@ -42,6 +46,15 @@ export function EventCard({ event }) {
       setShowAuthModal(true);
     } else {
       toggleBookmark(event.id);
+    }
+  };
+
+  const handleInterestedClick = () => {
+    if (!isAuthenticated) {
+      setPendingAction({ type: 'interested', eventId: event.id });
+      setShowAuthModal(true);
+    } else {
+      toggleInterested(event.id);
     }
   };
 
@@ -81,8 +94,9 @@ export function EventCard({ event }) {
           )}
         </div>
 
-        {/* Isolated Bookmark Icon */}
-        <div className="absolute top-3 right-3 z-10">
+        {/* Isolated Action Buttons: Interested & Bookmark */}
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+          <InterestedButton isInterested={isInterested} onClick={handleInterestedClick} />
           <BookmarkIcon isBookmarked={isBookmarked} onClick={handleBookmarkClick} />
         </div>
       </div>

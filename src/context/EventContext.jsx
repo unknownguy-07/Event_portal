@@ -6,6 +6,8 @@ import {
   getCollegeInfo,
   toggleBookmarkInDb,
   subscribeToUserBookmarks,
+  toggleInterestedInDb,
+  subscribeToUserInterestedEvents,
 } from '@/services/eventService';
 import {
   getUserEnrollments,
@@ -34,6 +36,8 @@ export function EventProvider({ children }) {
   const [organizerFilter, setOrganizerFilter] = useState('all'); // 'all' | organizer name
 
   const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
+  const [interestedIds, setInterestedIds] = useState(new Set());
+  const [isLoadingPersonalized, setIsLoadingPersonalized] = useState(false);
   const [userRegistrations, setUserRegistrations] = useState([]);
   const [isLoadingRegistrations, setIsLoadingRegistrations] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -61,33 +65,56 @@ export function EventProvider({ children }) {
     loadUserRegistrations();
   }, [loadUserRegistrations]);
 
-  // Synchronize personalized user bookmarks with Firestore whenever currentUser changes
+  // Synchronize personalized user bookmarks and interested events with Firestore
   useEffect(() => {
-    // Immediately clear bookmarks from React state (prevents previous user bookmarks leaking)
+    // Immediately clear personalized data from React state when auth changes or user logs out
     setBookmarkedIds(new Set());
+    setInterestedIds(new Set());
 
     if (!currentUser?.uid) {
+      setIsLoadingPersonalized(false);
       return;
     }
 
+    console.log('[EventContext] Loading personalized data for user:', currentUser.uid);
+    setIsLoadingPersonalized(true);
+
     let isMounted = true;
-    const unsubscribe = subscribeToUserBookmarks(
+
+    // 1. Subscribe to User Bookmarks
+    const unsubscribeBookmarks = subscribeToUserBookmarks(
       currentUser.uid,
       (ids) => {
         if (isMounted) {
+          console.log('[EventContext] Bookmarks updated for user:', currentUser.uid, 'count:', ids.size);
           setBookmarkedIds(ids);
+          setIsLoadingPersonalized(false);
         }
       },
       (err) => {
-        console.warn('[EventContext] Bookmarks subscription error:', err.message);
+        console.warn('[EventContext] Bookmarks subscription warning:', err.message);
+      }
+    );
+
+    // 2. Subscribe to User Interested Events
+    const unsubscribeInterested = subscribeToUserInterestedEvents(
+      currentUser.uid,
+      (ids) => {
+        if (isMounted) {
+          console.log('[EventContext] Interested events updated for user:', currentUser.uid, 'count:', ids.size);
+          setInterestedIds(ids);
+          setIsLoadingPersonalized(false);
+        }
+      },
+      (err) => {
+        console.warn('[EventContext] Interested events subscription warning:', err.message);
       }
     );
 
     return () => {
       isMounted = false;
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
+      if (typeof unsubscribeBookmarks === 'function') unsubscribeBookmarks();
+      if (typeof unsubscribeInterested === 'function') unsubscribeInterested();
     };
   }, [currentUser?.uid]);
 
@@ -184,6 +211,40 @@ export function EventProvider({ children }) {
     });
   };
 
+  const toggleInterested = (eventId, overrideUid) => {
+    const uid = overrideUid || currentUser?.uid;
+    if (!uid) {
+      setPendingAction({ type: 'interested', eventId });
+      setShowAuthModal(true);
+      return;
+    }
+
+    const isCurrentlyInterested = interestedIds.has(eventId);
+    setInterestedIds((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(eventId)) {
+        updated.delete(eventId);
+      } else {
+        updated.add(eventId);
+      }
+      return updated;
+    });
+
+    toggleInterestedInDb(uid, eventId, isCurrentlyInterested).catch((err) => {
+      console.warn('[EventContext] toggleInterestedInDb error:', err.message);
+    });
+  };
+
+  const isEventInterested = useCallback(
+    (eventId) => interestedIds.has(eventId),
+    [interestedIds]
+  );
+
+  const isEventBookmarked = useCallback(
+    (eventId) => bookmarkedIds.has(eventId),
+    [bookmarkedIds]
+  );
+
   // Computed displayed events based on search, category, registrationType, organizer, and sorting
   const displayedEvents = useMemo(() => {
     let result = [...events];
@@ -200,9 +261,11 @@ export function EventProvider({ children }) {
       );
     }
 
-    // Filter by category
+    // Filter by category: Interested Events includes both marked Interested and Bookmarked
     if (selectedCategory === 'interested') {
-      result = result.filter((evt) => bookmarkedIds.has(evt.id));
+      result = result.filter(
+        (evt) => interestedIds.has(evt.id) || bookmarkedIds.has(evt.id)
+      );
     } else if (selectedCategory !== 'all') {
       result = result.filter((evt) => evt.categoryId === selectedCategory);
     }
@@ -239,6 +302,7 @@ export function EventProvider({ children }) {
     organizerFilter,
     sortBy,
     bookmarkedIds,
+    interestedIds,
   ]);
 
   const value = {
@@ -261,6 +325,11 @@ export function EventProvider({ children }) {
     setOrganizerFilter,
     bookmarkedIds,
     toggleBookmark,
+    interestedIds,
+    toggleInterested,
+    isEventInterested,
+    isEventBookmarked,
+    isLoadingPersonalized,
     userRegistrations,
     userRegisteredIds,
     isLoadingRegistrations,
