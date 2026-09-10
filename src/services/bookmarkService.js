@@ -15,53 +15,18 @@ import { db, isFirebaseConfigured } from './firebase';
  * users/{userId}/bookmarks/{eventId}
  *   ├── eventId: string
  *   └── createdAt: timestamp
- *
- * Implements a dual-layer persistence strategy:
- * 1. Primary: Cloud Firestore subcollection `users/{userId}/bookmarks`.
- * 2. Per-UID Cache: Local cache strictly partitioned by `userId`.
- *    Ensures zero data loss across reloads/logins even if Firestore cloud rules
- *    are temporarily rejecting requests or during offline periods.
  */
-
-// ─── Per-UID Local Cache Helpers ─────────────────────────────────────
-function getCachedBookmarkIds(userId) {
-  if (!userId) return new Set();
-  try {
-    const raw = localStorage.getItem(`eventportal_user_${userId}_bookmarks`);
-    if (raw) {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) return new Set(arr);
-    }
-  } catch (err) {
-    console.warn('[bookmarkService] Failed to read local user cache:', err);
-  }
-  return new Set();
-}
-
-function setCachedBookmarkIds(userId, set) {
-  if (!userId) return;
-  try {
-    localStorage.setItem(
-      `eventportal_user_${userId}_bookmarks`,
-      JSON.stringify(Array.from(set))
-    );
-  } catch (err) {
-    console.warn('[bookmarkService] Failed to write local user cache:', err);
-  }
-}
 
 /**
  * Fetches all bookmarked event IDs for a given user.
+ * Returns a Set of event IDs (empty Set if none or unauthenticated).
  *
  * @param {string} userId - Firebase Auth user UID
  * @returns {Promise<Set<string>>}
  */
 export async function fetchUserBookmarks(userId) {
-  if (!userId) return new Set();
-  const cached = getCachedBookmarkIds(userId);
-
-  if (!isFirebaseConfigured || !db) {
-    return cached;
+  if (!isFirebaseConfigured || !db || !userId) {
+    return new Set();
   }
 
   try {
@@ -71,12 +36,10 @@ export async function fetchUserBookmarks(userId) {
     snapshot.forEach((docSnap) => {
       ids.add(docSnap.id);
     });
-    setCachedBookmarkIds(userId, ids);
-    console.log('[bookmarkService] Bookmarks loaded from Firestore for user:', userId, 'count:', ids.size);
     return ids;
   } catch (err) {
-    console.warn('[bookmarkService] fetchUserBookmarks Firestore read error (using user cache):', err.message);
-    return cached;
+    console.warn('[bookmarkService] fetchUserBookmarks error:', err.message);
+    return new Set();
   }
 }
 
@@ -87,24 +50,19 @@ export async function fetchUserBookmarks(userId) {
  * @param {string} eventId - Unique event identifier
  */
 export async function addBookmarkInDb(userId, eventId) {
-  if (!userId || !eventId) return;
+  if (!isFirebaseConfigured || !db || !userId || !eventId) {
+    return;
+  }
 
-  // Immediately persist to per-UID cache
-  const cached = getCachedBookmarkIds(userId);
-  cached.add(eventId);
-  setCachedBookmarkIds(userId, cached);
-
-  if (isFirebaseConfigured && db) {
-    try {
-      const bookmarkDocRef = doc(db, 'users', userId, 'bookmarks', eventId);
-      await setDoc(bookmarkDocRef, {
-        eventId,
-        createdAt: serverTimestamp(),
-      });
-      console.log('[bookmarkService] Bookmark written to Firestore for user:', userId, 'eventId:', eventId);
-    } catch (err) {
-      console.warn('[bookmarkService] addBookmarkInDb Firestore write error (preserved in user cache):', err.message);
-    }
+  try {
+    const bookmarkDocRef = doc(db, 'users', userId, 'bookmarks', eventId);
+    await setDoc(bookmarkDocRef, {
+      eventId,
+      createdAt: serverTimestamp(),
+    });
+  } catch (err) {
+    console.warn('[bookmarkService] addBookmarkInDb error:', err.message);
+    throw err;
   }
 }
 
@@ -115,21 +73,16 @@ export async function addBookmarkInDb(userId, eventId) {
  * @param {string} eventId - Unique event identifier
  */
 export async function removeBookmarkFromDb(userId, eventId) {
-  if (!userId || !eventId) return;
+  if (!isFirebaseConfigured || !db || !userId || !eventId) {
+    return;
+  }
 
-  // Immediately remove from per-UID cache
-  const cached = getCachedBookmarkIds(userId);
-  cached.delete(eventId);
-  setCachedBookmarkIds(userId, cached);
-
-  if (isFirebaseConfigured && db) {
-    try {
-      const bookmarkDocRef = doc(db, 'users', userId, 'bookmarks', eventId);
-      await deleteDoc(bookmarkDocRef);
-      console.log('[bookmarkService] Bookmark removed from Firestore for user:', userId, 'eventId:', eventId);
-    } catch (err) {
-      console.warn('[bookmarkService] removeBookmarkFromDb Firestore delete error (removed from user cache):', err.message);
-    }
+  try {
+    const bookmarkDocRef = doc(db, 'users', userId, 'bookmarks', eventId);
+    await deleteDoc(bookmarkDocRef);
+  } catch (err) {
+    console.warn('[bookmarkService] removeBookmarkFromDb error:', err.message);
+    throw err;
   }
 }
 
@@ -150,7 +103,7 @@ export async function toggleBookmarkInDb(userId, eventId, isCurrentlyBookmarked)
 
 /**
  * Subscribes to real-time bookmark updates for a user.
- * Immediately invokes onUpdate with cached data, then connects to Firestore.
+ * Calls onUpdate with a new Set of event IDs whenever the bookmarks collection changes.
  *
  * @param {string} userId
  * @param {Function} onUpdate - callback receiving Set<string>
@@ -158,16 +111,8 @@ export async function toggleBookmarkInDb(userId, eventId, isCurrentlyBookmarked)
  * @returns {Function} unsubscribe function
  */
 export function subscribeToUserBookmarks(userId, onUpdate, onError) {
-  if (!userId) {
+  if (!isFirebaseConfigured || !db || !userId) {
     onUpdate(new Set());
-    return () => {};
-  }
-
-  // Instantly seed with cached data for this UID (0ms latency, eliminates blank flash)
-  const cached = getCachedBookmarkIds(userId);
-  onUpdate(cached);
-
-  if (!isFirebaseConfigured || !db) {
     return () => {};
   }
 
@@ -180,20 +125,16 @@ export function subscribeToUserBookmarks(userId, onUpdate, onError) {
         snapshot.forEach((docSnap) => {
           ids.add(docSnap.id);
         });
-        setCachedBookmarkIds(userId, ids);
-        console.log('[bookmarkService] Live bookmarks synced from Firestore for user:', userId, 'count:', ids.size);
         onUpdate(ids);
       },
       (err) => {
-        console.warn('[bookmarkService] Firestore onSnapshot warning (keeping user cache active):', err.message);
-        onUpdate(getCachedBookmarkIds(userId));
+        console.warn('[bookmarkService] onSnapshot listener error:', err.message);
         if (onError) onError(err);
       }
     );
     return unsubscribe;
   } catch (err) {
     console.warn('[bookmarkService] subscribeToUserBookmarks failed:', err.message);
-    onUpdate(getCachedBookmarkIds(userId));
     if (onError) onError(err);
     return () => {};
   }

@@ -19,7 +19,6 @@ export function AuthPromptModal() {
     pendingAction,
     setPendingAction,
     toggleBookmark,
-    toggleInterested,
   } = useEvents();
   const { signInWithGoogle } = useAuth();
   const [modalError, setModalError] = useState('');
@@ -33,12 +32,8 @@ export function AuthPromptModal() {
       // Fulfill pending action post-authentication
       if (pendingAction === 'interested') {
         setSelectedCategory('interested');
-      } else if (typeof pendingAction === 'object') {
-        if (pendingAction.type === 'bookmark') {
-          toggleBookmark(pendingAction.eventId, user?.uid);
-        } else if (pendingAction.type === 'interested') {
-          toggleInterested(pendingAction.eventId, user?.uid);
-        }
+      } else if (typeof pendingAction === 'object' && pendingAction?.type === 'bookmark') {
+        toggleBookmark(pendingAction.eventId, user?.uid);
       }
       setPendingAction(null);
     } catch (err) {

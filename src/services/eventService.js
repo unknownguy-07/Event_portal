@@ -95,13 +95,3 @@ export {
   toggleBookmarkInDb,
   subscribeToUserBookmarks,
 } from './bookmarkService';
-
-// Re-export interested operations from dedicated interestedService
-export {
-  fetchUserInterestedEvents,
-  addInterestedInDb,
-  removeInterestedFromDb,
-  toggleInterestedInDb,
-  subscribeToUserInterestedEvents,
-} from './interestedService';
-

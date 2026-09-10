@@ -25,13 +25,6 @@ service cloud.firestore {
       match /bookmarks/{eventId} {
         allow read, write, delete: if isOwner(userId);
       }
-
-      // ─── User Interested Events Subcollection ────────────────────
-      // Subcollection: users/{userId}/interestedEvents/{eventId}
-      // Strictly personal: each authenticated user can only read, create, update, and delete their own interested events
-      match /interestedEvents/{eventId} {
-        allow read, write, delete: if isOwner(userId);
-      }
     }
 
     // ─── Registrations Collection ──────────────────────────────────

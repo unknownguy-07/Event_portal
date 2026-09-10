@@ -8,7 +8,6 @@ import {
   Calendar,
   Tag,
   Bookmark,
-  Star,
   Sparkles,
   CheckCircle2,
   Ticket,
@@ -30,8 +29,6 @@ export function EventDetailPage() {
     featuredEvents,
     bookmarkedIds,
     toggleBookmark,
-    interestedIds,
-    toggleInterested,
     setShowAuthModal,
     setPendingAction,
     isEventRegistered,
@@ -49,8 +46,7 @@ export function EventDetailPage() {
     featuredEvents.find((e) => e.id === id) ||
     events[0]; // Fallback to first event if ID not found
 
-  const isBookmarked = event && bookmarkedIds ? bookmarkedIds.has(event.id) : false;
-  const isInterested = event && interestedIds ? interestedIds.has(event.id) : false;
+  const isBookmarked = event ? bookmarkedIds.has(event.id) : false;
   const isRegistered = event ? isEventRegistered(event.id) : false;
   const registrationRecord = event
     ? userRegistrations.find((r) => r.eventId === event.id)
@@ -62,15 +58,6 @@ export function EventDetailPage() {
       setShowAuthModal(true);
     } else {
       toggleBookmark(event.id);
-    }
-  };
-
-  const handleInterestedClick = () => {
-    if (!isAuthenticated) {
-      setPendingAction({ type: 'interested', eventId: event.id });
-      setShowAuthModal(true);
-    } else {
-      toggleInterested(event.id);
     }
   };
 
@@ -156,29 +143,15 @@ export function EventDetailPage() {
               )}
             </div>
 
-            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-              <button
-                onClick={handleInterestedClick}
-                className={`p-3 rounded-full backdrop-blur-md border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50 cursor-pointer ${
-                  isInterested
-                    ? 'bg-gradient-to-br from-amber-500 to-yellow-600 border-amber-400/60 text-white shadow-lg shadow-amber-500/40 scale-105'
-                    : 'bg-[#080811]/80 border-purple-500/25 text-[#9CA3B5] hover:text-amber-300 hover:border-amber-400/30'
-                }`}
-                aria-label={isInterested ? 'Remove from interested events' : 'Mark as interested event'}
-                title={isInterested ? 'Interested ✓ (Click to remove)' : 'Mark as Interested'}
-              >
-                <Star className={`w-5 h-5 ${isInterested ? 'fill-current text-white' : ''}`} />
-              </button>
-
+            <div className="absolute top-4 right-4 z-10">
               <button
                 onClick={handleBookmarkClick}
-                className={`p-3 rounded-full backdrop-blur-md border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B5CFF]/50 cursor-pointer ${
+                className={`p-3 rounded-full backdrop-blur-md border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B5CFF]/50 ${
                   isBookmarked
-                    ? 'bg-gradient-to-br from-[#8B4DFF] to-[#6E2FF0] border-purple-400/50 text-white shadow-lg shadow-purple-600/50 scale-105'
+                    ? 'bg-gradient-to-br from-[#8B4DFF] to-[#6E2FF0] border-purple-400/50 text-white shadow-lg shadow-purple-600/50'
                     : 'bg-[#080811]/80 border-purple-500/25 text-[#9CA3B5] hover:text-white hover:border-purple-500/50'
                 }`}
                 aria-label="Bookmark event"
-                title={isBookmarked ? 'Bookmarked ✓ (Click to remove)' : 'Bookmark Event'}
               >
                 <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
               </button>
@@ -330,20 +303,6 @@ export function EventDetailPage() {
                       )}
                     </button>
                   )}
-
-                  {/* Interested Quick Toggle */}
-                  <button
-                    type="button"
-                    onClick={handleInterestedClick}
-                    className={`w-full py-2.5 px-4 rounded-full border text-xs font-bold flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
-                      isInterested
-                        ? 'bg-amber-500/15 border-amber-400/50 text-amber-300 shadow-sm shadow-amber-500/20'
-                        : 'bg-[#12101F] hover:bg-[#18152A] border-purple-500/25 text-[#9CA3B5] hover:text-[#F1F0F5]'
-                    }`}
-                  >
-                    <Star className={`w-3.5 h-3.5 ${isInterested ? 'fill-current text-amber-400' : 'text-amber-400/80'}`} />
-                    <span>{isInterested ? 'Marked as Interested ✓' : 'Mark as Interested'}</span>
-                  </button>
                 </div>
               </div>
             </div>
